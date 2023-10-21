@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>D3 Lines</title>
+    <style>
+      #svg-examples {
+        width: 300px;
+        height: 300px;
+      }
+
+      #viz-container {
+        .line {
+          fill: none;
+          stroke: blue;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h3>Lines in SVG</h3>
+    <svg id="svg-examples">
+      <line x1="50" y1="50" x2="100" y2="100" stroke="black" />
+      <!--
+        For complex lines, use path.
+        Move to 150, 0. Then draw a line to 75, 200. Then draw a line to 225, 200.
+      -->
+      <path d="M 150 0 L75 200 L225 200" fill="none" stroke="black" />
+    </svg>
+
+    <h3>Line Chart with D3</h3>
+    <svg id="viz-container" height="300" width="500">
+      <g id="chart-body" transform="translate(50,50)"></g>
+      <g id="xAxis"></g>
+      <g id="yAxis"></g>
+    </svg>
+  </body>
+  <script type="module">
+    import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+
+    let chartBody = d3.select('#chart-body');
+
+    d3.csv("data-lines.csv").then(data => showData(transformData(data)));
+
+    function transformData(data) {
+      return data.map(d => ({
+        date: new Date(d.date),
+        price: +d.price
+      }));
+    }
+
+    function showData(data) {
+      let bodyHeight = 200;
+      let bodyWidth = 400;
+
+      let maxValue = d3.max(data, (d) => d.price);
+
+      let yScale = d3.scaleLinear()
+        .domain([0, maxValue])
+        .range([bodyHeight, 0]); // inverted range because in svg 0 is at the top on the vertical axis
+
+      // add the y-axis
+      chartBody.append("g")
+        .call(d3.axisLeft(yScale));
+
+      let xScale = d3.scaleTime()
+        .domain(d3.extent(data, d => d.date))
+        .range([0, bodyWidth]);
+      
+      // add the x-axis
+      chartBody.append('g')
+        .attr('transform', `translate(0, ${bodyHeight})`) // move to bottom of the chart body
+        .call(
+          d3.axisBottom(xScale)
+            .tickFormat(d3.timeFormat('%b')) // only show abbreviated month
+        );
+
+      // Use d3 line generators to specify the x and y values based on the data
+      const valueLine = d3.line()
+        .x(d => xScale(d.date))
+        .y(d => yScale(d.price))
+        .defined(d => !!d.price); // only consider data points where price is defined
+      
+      // draw the svg path using the line generator
+      chartBody.append("path")
+        .datum(data) // we use datum because we only want 1 svg path for all this data
+        .attr("d", valueLine)
+        .attr("class", "line");
+
+    }
+  </script>
+</html>
