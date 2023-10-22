@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>D3 Arcs</title>
+  </head>
+  <body>
+    <svg id="container" height="300" width="500">
+      <g id="chart" transform="translate(150,150)"></g>
+    </svg>
+  </body>
+  <script type="module">
+    import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+
+    let chart = d3.select("#chart");
+    d3.csv("data/data-arcs.csv").then(data => showData(transformData(data)));
+
+    function transformData(data) {
+      return data.map(d => ({
+            country: d.country,
+            sales: +d.sales
+        }));
+    }
+
+    function showData(data) {
+        const bodyHeight = 200;
+        const bodyWidth = 400;
+
+        // first define a Pie Generator to create a function that can ouput startAngle and endAngle for some data
+        const pie = d3.pie()
+          .value(d => d.sales);
+        
+        console.log(pie(data)); // this outputs the data array with startAngle and endAngle props for each datum
+
+        // create a color (ordinal) scale for the pie colors
+        const colorScale = d3.scaleOrdinal()
+          .domain(data.map(d => d.country))
+          .range(d3.schemeCategory10);
+        
+        // define an arc generator
+        // an arc generator is a function that returns the svg path string for an object that has startAngle and endAngle props
+        const arc = d3.arc()
+          .innerRadius(50)
+          .outerRadius(bodyHeight / 2);
+        console.log(pie(data).map(arc));
+
+        // using the join approach, draw the arcs using the arc generator
+        let arcGroups = chart.selectAll(".arc")
+          .data(pie(data)) // use the pie generator here so that each data element has startAngle and endAngle defined
+          .enter()
+          .append("g");
+        arcGroups.append("path")
+          .attr("d", arc)
+          .attr("fill", d => colorScale(d.data.country));
+    }
+  </script>
+</html>
