@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>D3 Maps</title>
+</head>
+
+<body>
+  <svg id="container" height="500" width="500">
+    <g id="body" transform="translate(50,50)"></g>
+  </svg>
+</body>
+<script type="module">
+  import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+
+  let body = d3.select("#body");
+
+  // a geo json object specifies the shape of a geographical region using latitudes and longinudes 
+  d3.json("data/countries.geo.json").then(showData)
+
+  function showData(mapInfo) {
+    const bodyHeight = 400;
+    const bodyWidth = 400;
+
+    // first create a projection. A projection is like a scale. It specifies how latitudes and 
+    // longitudes (which exist in 3d space) should translate to the 2d image space in the visualization.
+    const projection = d3.geoNaturalEarth1()
+      .scale(80) // scale and translate the projection based on the svg size
+      .translate([bodyWidth / 2, bodyHeight / 2]);
+
+    // then create a geoPath generator using the projection
+    const geoPathGenerator = d3.geoPath().projection(projection);
+
+    // now using the joing approach, for each "feature" 
+    // in the geo json data, draw the country shapes using the path generator
+    body.selectAll('path')
+      .data(mapInfo.features)
+      .enter()
+      .append('path')
+      .attr('d', geoPathGenerator)
+      .attr('stroke', 'black')
+      .attr('fill', 'none');
+
+
+
+  }
+
+</script>
+
+</html>
