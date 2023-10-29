@@ -1,0 +1,57 @@
+<html>
+  <head>
+    <style></style>
+  </head>
+  <body>
+    <svg id="container" height="700" width="900">
+      <g id="body" transform="translate(0,0)"></g>
+    </svg>
+  </body>
+  <script type="module">
+    import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+    let body = d3.select("#body");
+
+    Promise.all([d3.csv("data/country-earthquake-dataset.csv"), d3.json("data/countries.geo.json")]).then(showData);
+
+    function showData([earthquakeData, mapInfo]) {
+      addEarthquakeInfoToGeoJson(earthquakeData, mapInfo.features);
+
+      const maxEarthquakeMagnitude = d3.max(mapInfo.features, d => d.properties.magnitude);
+      const medianEarthquageMagnitude = d3.median(mapInfo.features, d => d.properties.magnitude)
+      const cScale = d3.scaleLinear()
+        .domain([0, medianEarthquageMagnitude, maxEarthquakeMagnitude])
+        .range(['white', 'orange', 'red']);
+
+      let bodyHeight = 600;
+      let bodyWidth = 700;
+
+      var projection = d3
+        .geoMercator()
+        .scale(80)
+        .translate([bodyWidth / 2, bodyHeight / 2]);
+
+      var path = d3.geoPath().projection(projection);
+
+      body
+        .selectAll("path")
+        .data(mapInfo.features)
+        .enter()
+        .append("path")
+        .attr("d", (d) => path(d))
+        .attr("stroke", "black")
+        // color the country based on the earthquake magnitude
+        .attr("fill", d => d.properties.magnitude ? cScale(d.properties.magnitude) : 'white');
+        
+    }
+
+    function addEarthquakeInfoToGeoJson(earthquakeData, geoJsonArr) {
+      const magnitudeByCountry = earthquakeData.reduce((acc, curr) => {
+        acc[curr.Country] = +curr.Magnitude;
+        return acc;
+      }, {});
+      geoJsonArr.forEach(info => {
+        info.properties.magnitude = magnitudeByCountry[info.properties.name];
+      });
+    }
+  </script>
+</html>
