@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>D3 Treemaps</title>
+
+    <style>
+      .links line {
+        stroke: black;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>Visualizing hierarchical data with treemaps</h3>
+    <svg id="container" height="300" width="500">
+      <g id="body" transform="translate(0,0)"></g>
+    </svg>
+  </body>
+  <script type="module">
+    import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+
+    const body = d3.select("#body");
+
+    d3.json("data/hierarchical-sales-data.json").then(showData);
+
+    function showData(data) {
+      const bodyHeight = 300;
+      const bodyWidth = 500;
+
+      // call d3.hierarchy to add information like sum, parent to each node in our data structure
+      const root = d3.hierarchy(data).sum((d) => d.sales);
+
+      // the treemap function adds information about the rectangles (x0, y0, x1, y1) based on the hierarchy info
+      const treemap = d3.treemap().size([bodyWidth, bodyHeight]).paddingInner(2);
+      treemap(root);
+
+      // draw the rectangles for all the leaves in the tree
+      // first join the data - an svg group for each leaf in the tree
+      const cell = body
+        .selectAll("g")
+        .data(root.leaves())
+        .enter()
+        .append("g")
+        .attr("transform", (d) => `translate(${d.x0}, ${d.y0})`);
+
+      // then draw the rectangles and color them
+      const cScale = d3.scaleOrdinal(d3.schemeCategory10);
+      cell
+        .append("rect")
+        .attr("width", (d) => d.x1 - d.x0)
+        .attr("height", (d) => d.y1 - d.y0)
+        .attr("fill", (d) => cScale(d.parent.data.name)); // we color them later based on the parent's name
+
+      // add text to the groups (each data cell)
+      cell
+        .append("text")
+        .text((d) => d.data.name)
+        .attr("alignment-baseline", "hanging")
+        .attr("fill", "white");
+    }
+  </script>
+</html>
